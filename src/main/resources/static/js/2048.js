@@ -60,21 +60,20 @@ document.addEventListener('keyup', (e) => {
 })
 
 function slideWithMove(board_, move){
-    
+
     if (move == "ArrowLeft") {
-        slideLeft(board_);
-        
+        slideLeft(board_);  
     }
     else if (move == "ArrowRight") {
-        slideRight(board_);
-        
+        slideRight(board_);  
     }
     else if (move == "ArrowUp") {
-        slideUp(board_);
-        
+        slideUp(board_);   
+
     }
     else if (move == "ArrowDown") {
-        slideDown(board_);    
+        slideDown(board_);  
+
     }
 }
 
