@@ -33,20 +33,20 @@ document.addEventListener('keyup', (e) => {
     if (acceptKeyboardInput){
         if (e.code == "ArrowLeft") {
             slideLeft();
-            setTwo();
+            //setTwo();
         }
         else if (e.code == "ArrowRight") {
             slideRight();
-            setTwo();
+            //setTwo();
         }
         else if (e.code == "ArrowUp") {
             slideUp();
-            setTwo();
+            //setTwo();
 
         }
         else if (e.code == "ArrowDown") {
             slideDown();
-            setTwo();
+            
         }
     } 
     document.getElementById("score").innerText = score;
@@ -55,7 +55,7 @@ document.addEventListener('keyup', (e) => {
         displayVictory();
         acceptKeyboardInput = false;
     }
-    
+    setTwo();
 })
 
 
