@@ -30,25 +30,26 @@ window.onload = function() {
 
 document.addEventListener('keyup', (e) => {
 
-    if (acceptKeyboardInput){
-        if (e.code == "ArrowLeft") {
-            slideLeft();
-            //setTwo();
-        }
-        else if (e.code == "ArrowRight") {
-            slideRight();
-            //setTwo();
-        }
-        else if (e.code == "ArrowUp") {
-            slideUp();
-            //setTwo();
+    // if (acceptKeyboardInput){
+    //     if (e.code == "ArrowLeft") {
+    //         slideLeft();
+    //         //setTwo();
+    //     }
+    //     else if (e.code == "ArrowRight") {
+    //         slideRight();
+    //         //setTwo();
+    //     }
+    //     else if (e.code == "ArrowUp") {
+    //         slideUp();
+    //         //setTwo();
 
-        }
-        else if (e.code == "ArrowDown") {
-            slideDown();
+    //     }
+    //     else if (e.code == "ArrowDown") {
+    //         slideDown();
             
-        }
-    } 
+    //     }
+    // } 
+    slideWithMove(board, e.key)
     document.getElementById("score").innerText = score;
     max_element = findMaxElement(board);
     if (max_element >= VICTORY_SCORE) {
@@ -57,6 +58,28 @@ document.addEventListener('keyup', (e) => {
     }
     setTwo();
 })
+
+function slideWithMove(board_, move){
+    //let board_ = board;
+    if (move == "ArrowLeft") {
+        slideLeft(board_);
+        //setTwo();
+    }
+    else if (move == "ArrowRight") {
+        slideRight(board_);
+        //setTwo();
+    }
+    else if (move == "ArrowUp") {
+        slideUp(board_);
+        //setTwo();
+
+    }
+    else if (move == "ArrowDown") {
+        slideDown(board_);
+        //setTwo();
+    }
+}
+
 
 
 function setGame() {
