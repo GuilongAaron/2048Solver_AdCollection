@@ -60,23 +60,21 @@ document.addEventListener('keyup', (e) => {
 })
 
 function slideWithMove(board_, move){
-    //let board_ = board;
+    
     if (move == "ArrowLeft") {
         slideLeft(board_);
-        //setTwo();
+        
     }
     else if (move == "ArrowRight") {
         slideRight(board_);
-        //setTwo();
+        
     }
     else if (move == "ArrowUp") {
         slideUp(board_);
-        //setTwo();
-
+        
     }
     else if (move == "ArrowDown") {
-        slideDown(board_);
-        //setTwo();
+        slideDown(board_);    
     }
 }
 
