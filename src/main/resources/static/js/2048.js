@@ -1,7 +1,11 @@
+// below are global CONST.
+// game related
 var board;
 var score = 0;
 var rows = 4;
 var columns = 4;
+
+// algorithm related
 var max_element = 0;
 var VICTORY_SCORE = 30; // it should be set as 2048 for testing, 4
 var acceptKeyboardInput = true;
@@ -22,34 +26,17 @@ const SCORE_BOARD_2 = [
     [4**15, 4**13, 4**11, 4**9]
 ];
 
-
+// main program
 window.onload = function() {
     setGame();
 }
 
-
+// interact with input.
 document.addEventListener('keyup', (e) => {
 
-    // if (acceptKeyboardInput){
-    //     if (e.code == "ArrowLeft") {
-    //         slideLeft();
-    //         //setTwo();
-    //     }
-    //     else if (e.code == "ArrowRight") {
-    //         slideRight();
-    //         //setTwo();
-    //     }
-    //     else if (e.code == "ArrowUp") {
-    //         slideUp();
-    //         //setTwo();
-
-    //     }
-    //     else if (e.code == "ArrowDown") {
-    //         slideDown();
-            
-    //     }
-    // } 
-    slideWithMove(board, e.key)
+    if (acceptKeyboardInput){
+        slideWithMove(board, e.key)
+    }
     document.getElementById("score").innerText = score;
     max_element = findMaxElement(board);
     if (max_element >= VICTORY_SCORE) {
@@ -119,7 +106,7 @@ function updateTile(tile, num){
 
 function displayVictory() {
     const resultArea = document.getElementById('resultArea');
-    resultArea.textContent = "You Win";
+    resultArea.textContent = "You Win!";
 }
 
 
@@ -128,15 +115,16 @@ function filterZero(row){
 }
 
 function slide(row) {
-    //[0, 2, 2, 2] 
-    row = filterZero(row); //[2, 2, 2]
+    //[0, 2, 2, 2] move to left
+    row = filterZero(row);  //[2, 2, 2]  first remove zeros
+    //[4, 0, 2]  combine the adjacent idential elements
     for (let i = 0; i < row.length-1; i++){
         if (row[i] == row[i+1]) {
             row[i] *= 2;
             row[i+1] = 0;
             score += row[i];
         }
-    } //[4, 0, 2]
+    } 
     row = filterZero(row); //[4, 2]
     //add zeroes
     while (row.length < columns) {
@@ -234,7 +222,7 @@ function setTwo() {
 
 
 function hasEmptyTile() {
-    let count = 0;
+    //let count = 0;
     for (let r = 0; r < rows; r++) {
         for (let c = 0; c < columns; c++) {
             if (board[r][c] == 0) { //at least one zero in the board
