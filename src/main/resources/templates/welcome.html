@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org" >
+<head>
+	<meta charset="UTF-8">
+	<title>2048ゲームへようこそ!</title>
+
+</head>
+<body>
+<h1>2048ゲームへようこそ!</h1>
+
+
+	<p>年齢と性別の入力、好きな広告をクリックして、ゲームをスタート！</p>
+	<form action="" method="post" th:object="${member}">
+		<table>
+			<tr>
+				<th>年齢：</th>
+				<td>
+				<input type="number" th:field="*{age}">
+				<span th:errors="*{age}" class="error"></span><br>
+				</td>
+			</tr>
+		
+			<tr>
+				<th>性別：</th>
+				<td>
+				<input type="radio" th:field="*{gender}" th:value="1">男性
+				<input type="radio" th:field="*{gender}" th:value="0">女性
+				<span th:errors="*{gender}" class="error"></span><br>
+			</td>
+		</tr>
+		
+			<tr>
+			<th>好きな広告：</th> 
+				<td>
+				<input type="radio" th:field="*{ad_Id}" th:value="1">
+			 	<img th:src="@{/images/image1.jpg}"  width="200" height="200" alt="This is an IT ad.">
+			 	<input type="radio" th:field="*{ad_Id}" th:value="2">
+			    <img th:src="@{/images/image2.jpg}"  width="200" height="200" alt="This is an car ad.">
+			    <input type="radio" th:field="*{ad_Id}" th:value="3">
+			    <img th:src="@{/images/image3.jpg}"  width="200" height="200" alt="This is an mobile ad.">
+				</td>
+		</tr>		
+		</table>
+		<p>		<input type="submit" value="ゲームをスタート">		</p>	
+		
+	</form>	
+	
+</body>
+</html>

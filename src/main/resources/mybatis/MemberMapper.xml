@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.app.mapper.MemberMapper">
+
+
+
+<insert id="addMember" parameterType="com.example.app.domain.Member">
+	INSERT INTO ad_members (age, gender, ad_Id, created)
+	VALUES (#{age}, #{gender}, #{ad_Id}, NOW())
+</insert>
+</mapper>
