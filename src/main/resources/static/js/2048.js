@@ -313,6 +313,6 @@ function getVector(board_, direction){
     return Vectors(board_, direction);
 }
 
-// function Vectors(board_, direction){
+function Vectors(board_, direction){
 
-// }
+}
