@@ -314,5 +314,5 @@ function getVector(board_, direction){
 }
 
 // function Vectors(board_, direction){
-
+// this function can be omitted.
 // }
