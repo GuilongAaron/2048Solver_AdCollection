@@ -1,13 +1,13 @@
 // below are global CONST.
 // game related
-var board;
-var score = 0;
-var rows = 4;
-var columns = 4;
+let board;
+let score = 0;
 
 // algorithm related
-var max_element = 0;
-var VICTORY_SCORE = 30; // it should be set as 2048 for testing, 4
+let max_element = 0;
+const rows = 4;
+const columns = 4;
+const VICTORY_SCORE = 30; // it should be set as 2048 for testing, 4
 var acceptKeyboardInput = true;
 var playerTurn = true
 
@@ -36,6 +36,7 @@ document.addEventListener('keyup', (e) => {
 
     if (acceptKeyboardInput){
         slideWithMove(board, e.key)
+        setTwo();
     }
     document.getElementById("score").innerText = score;
     max_element = findMaxElement(board);
@@ -43,8 +44,22 @@ document.addEventListener('keyup', (e) => {
         displayVictory();
         acceptKeyboardInput = false;
     }
-    setTwo();
 })
+
+function eval(board_){
+    let emptyCells_len = availableCells(board_).length;
+
+    let smoothWeight = 0.1;
+    let mono2Weight = 1.0;
+    let emptyWeight = 2.7;
+    let maxWeight = 1.0;
+    return smoothness(board_) * smoothWeight
+            + monotonicity2(board_) * mono2Weight
+            + Math.log(emptyCells_len) * emptyWeight 
+            + max_element * maxWeight  
+
+}
+
 
 function slideWithMove(board_, move){
 
@@ -247,40 +262,40 @@ function findMaxElement(array) {
   }
 
 
-function convolution(input, filter) {
-const inputRows = input.length;
-const inputCols = input[0].length;
-const filterRows = filter.length;
-const filterCols = filter[0].length;
+// function convolution(input, filter) {
+// const inputRows = input.length;
+// const inputCols = input[0].length;
+// const filterRows = filter.length;
+// const filterCols = filter[0].length;
 
-const result = [];
+// const result = [];
 
-for (let i = 0; i <= inputRows - filterRows; i++) {
-    const row = [];
-    for (let j = 0; j <= inputCols - filterCols; j++) {
-    let sum = 0;
-    for (let x = 0; x < filterRows; x++) {
-        for (let y = 0; y < filterCols; y++) {
-        sum += input[i + x][j + y] * filter[x][y];
-        }
-    }
-    row.push(sum);
-    }
-    result.push(row);
-}
+// for (let i = 0; i <= inputRows - filterRows; i++) {
+//     const row = [];
+//     for (let j = 0; j <= inputCols - filterCols; j++) {
+//     let sum = 0;
+//     for (let x = 0; x < filterRows; x++) {
+//         for (let y = 0; y < filterCols; y++) {
+//         sum += input[i + x][j + y] * filter[x][y];
+//         }
+//     }
+//     row.push(sum);
+//     }
+//     result.push(row);
+// }
 
-return result;
-}
+// return result;
+// }
   
-function sumOfSquares(matrix) {
-let sum = 0;
-for (let i = 0; i < matrix.length; i++) {
-    for (let j = 0; j < matrix[i].length; j++) {
-    sum += matrix[i][j] ** 2;
-    }
-}
-return sum;
-}
+// function sumOfSquares(matrix) {
+// let sum = 0;
+// for (let i = 0; i < matrix.length; i++) {
+//     for (let j = 0; j < matrix[i].length; j++) {
+//     sum += matrix[i][j] ** 2;
+//     }
+// }
+// return sum;
+// }
 
 
 // CHECK maximum element when checking gameOver()
@@ -288,31 +303,137 @@ return sum;
 // 1. 
 
 function smoothness(board_) {
-let smoothness = 0;
-for (var x=0; x<4; x++) {
-    for (var y=0; y<4; y++) {
-    if ( board_[x][y] !== 0) {
-        var value = Math.log(board_[x][y]) / Math.log(2);
-        for (var direction=1; direction<=2; direction++) {
-        var vector = this.getVector(direction);
-        var targetCell = this.findFarthestPosition(this.indexes[x][y], vector).next;
-
-        if (this.cellOccupied(targetCell)) {
-            var target = this.cellContent(targetCell);
-            var targetValue = Math.log(target.value) / Math.log(2);
-            smoothness -= Math.abs(value - targetValue);
-        }
+    let smoothness = 0;
+    let directions = ["ArrowRight", "ArrowDown"];
+    // let value;
+    // let targetCell;
+    for (let x=0; x<4; x++) {
+        for (let y=0; y<4; y++) {
+            if (cellOccupied(board_, x, y)) {
+                let value = Math.log(board_[x][y]) / Math.log(2);  //base 2, the log value
+                for (const direction of directions) {                
+                    let targetCell = findFurthestPosition(board_, x, y, direction);
+                    // I strongly feel here, should be previous_row, previous_col
+                    // (board_, targetCell.previous_row, targetCell.previous_col)
+                    // (board_, targetCell.next_x, targetCell.next_y)
+                    if (cellOccupied(board_, targetCell.previous_row, targetCell.previous_col)) {
+                        console.log("if-clause in smoothness is executed.");
+                        let target = cellContent(board_, targetCell.previous_row, targetCell.previous_col);
+                        let targetValue = Math.log(target) / Math.log(2);
+                        smoothness -= Math.abs(value - targetValue);
+                    }
+                }
+            }
         }
     }
+    return smoothness;
+}
+
+function withinBounds(x, y){
+    return x>=0 && x<4 &&y>=0 && y<4;
+}
+
+function cellContent(board_, x, y){
+    if (withinBounds(board_, x, y)){
+        return board_[x][y];
+    }else{
+        return null;
     }
 }
-return smoothness;
+
+function cellOccupied(board_, x, y){
+    return !!cellContent(board_, x, y);
 }
 
-function getVector(board_, direction){
-    return Vectors(board_, direction);
+function findFurthestPosition(board_, x, y, MoveDir){
+    let previous_row;
+    let previous_col;
+    let moving_x_co;
+    let moving_y_co;
+    if (MoveDir === "ArrowRight"){
+        moving_x_co = 1;
+        moving_y_co = 0;
+    } else if (MoveDir === "ArrowDown"){
+        moving_x_co = 0;
+        moving_y_co = 1;
+    }
+    do {
+        previous_row = x;
+        previous_col = y;
+        x = previous_row + moving_x_co;
+        y = previous_col + moving_y_co;
+    }while(withinBounds(x, y) && !cellOccupied(board_, x, y));
+
+    return {
+        furthest_x: previous_row,
+        furthest_y: previous_col,
+        next_x: x,
+        next_y: y
+        };
 }
 
-// function Vectors(board_, direction){
-// this function can be omitted.
-// }
+function availableCells(board_){
+    let cells = [];
+    for (let r = 0; r < rows; r++){
+        for (let c = 0; c < columns; c++){
+            if (board_[r][c] !==0) {
+                cells.push({x: r, y: c});
+            }
+        }
+    }
+    return cells;
+}
+
+
+function monotonicity2(board_){
+    let totals = [0, 0, 0, 0];
+
+    for (let r = 0; r < rows; r++){
+        let current = 0;
+        let next = current + 1;
+
+        while(next<4){
+            while(next<4 && !cellOccupied(board_, r, next)){
+                next++;
+            }
+            if (next>=4) {
+                next--;
+            }
+            let currentValue = cellOccupied(board_, r, current) ? Math.log(cellContent(board_, r, current)) / Math.log(2) : 0;
+            let nextValue = cellOccupied(board_, r, next) ? Math.log(cellContent(board_, r, next)) / Math.log(2) : 0;
+            
+            if (currentValue > nextValue){
+                totals[0] += nextValue - currentValue;
+            } else if (nextValue > currentValue){
+                totals[1] += currentValue - nextValue
+            }
+            current = next;
+            next++;
+        }
+    }
+
+    for (let c = 0; c < columns; c++){
+        let current = 0;
+        let next = current + 1;
+        while(next<4){
+            while(next<4 && !cellOccupied(board_, next, c)){
+                next++;
+            }
+            if (next>=4) {
+                next--;
+            }
+            let currentValue = cellOccupied(board_, current, c) ? Math.log(cellContent(board_, current, c)) / Math.log(2) : 0;
+            let nextValue = cellOccupied(board_, next, c) ? Math.log(cellContent(board_, next, c)) / Math.log(2) : 0;
+            
+            if (currentValue > nextValue){
+                totals[0] += nextValue - currentValue;
+            } else if (nextValue > currentValue){
+                totals[1] += currentValue - nextValue
+            }
+            current = next;
+            next++;
+        }
+    }
+    return Math.max(totals[0], totals[1]) + Math.max(totals[2], totals[3]);
+
+}
