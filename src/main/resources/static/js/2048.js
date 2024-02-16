@@ -1,38 +1,39 @@
 // below are global CONST.
 // game related
-let board;
-let score = 0;
+var board;
+var playerTurn = true
+var score = 0;
+const VICTORY_SCORE = 30; // it should be set as 2048 for testing, 4
 
 // algorithm related
 let max_element = 0;
 const rows = 4;
 const columns = 4;
-const VICTORY_SCORE = 30; // it should be set as 2048 for testing, 4
+var runAI = false;
 var acceptKeyboardInput = true;
-var playerTurn = true
-const DEPTH = 4;
-const ALPHA = 4;
-const BETA = 4;
+const MINSearchTime = 500;
+const MAX_DEPTH = 10;
 
-// position related score, may not be used. 
-const SCORE_BOARD_1 = [
-    [4**0, 4**1, 4**2, 4**3],
-    [4**7, 4**6, 4**5, 4**4],
-    [4**8, 4**9, 4**10, 4**11],
-    [4**15, 4**14, 4**13, 4**12]
-];
-// monotoned score
-const SCORE_BOARD_2 = [
-    [4**9, 4**7, 4**5, 4**3],
-    [4**11, 4**9, 4**7, 4**5],
-    [4**13, 4**11, 4**9, 4**7],
-    [4**15, 4**13, 4**11, 4**9]
-];
+
+// // position related score, may not be used. 
+// const SCORE_BOARD_1 = [
+//     [4**0, 4**1, 4**2, 4**3],
+//     [4**7, 4**6, 4**5, 4**4],
+//     [4**8, 4**9, 4**10, 4**11],
+//     [4**15, 4**14, 4**13, 4**12]
+// ];
+// // monotoned score
+// const SCORE_BOARD_2 = [
+//     [4**9, 4**7, 4**5, 4**3],
+//     [4**11, 4**9, 4**7, 4**5],
+//     [4**13, 4**11, 4**9, 4**7],
+//     [4**15, 4**13, 4**11, 4**9]
+// ];
 
 // main program
 window.onload = function() {
     setGame();
-    if (!playerTurn) {
+    if (runAI) {
         run_AI();
     }
 }
@@ -42,7 +43,7 @@ document.addEventListener('keyup', (e) => {
 
     if (acceptKeyboardInput){
         slideWithMove(board, e.key)
-        setTwo();
+        setTwo(board);
     }
     document.getElementById("score").innerText = score;
     max_element = findMaxElement(board);
@@ -56,33 +57,112 @@ document.addEventListener('keyup', (e) => {
 function run_AI(){
     acceptKeyboardInput = false;
 
-    // loop below, not finished
-    moveDir = searchBestMove(board, DEPTH, ALPHA, BETA);
+    // loop below, not finished: if game is not over: then loop. else: displayGameOver();
+    moveDir = getBestMove(board);
     slideWithMove(board, moveDir);
+    setTwo(board);
 }
 
-function searchBestMove(board, DEPTH, ALPHA, BETA){
-    //make a copy of board.
-    let new_board = clone_board(board);
-    let bestScore = -1;
-    let bestMove = "ArrowDown";
-    let result = -1;
+function getBestMove(board){
+    let start = (new Date()).getTime();
+    let depth = 0;
+    let best = "ArrowDown";
 
-    bestScore = BETA;
+    do{
+        let newBest = searchBestMove(board, depth, -10000, 10000, 0, 0);
+        if (newBest.move == -1){
+            break;
+        }else{
+            best = newBest;
+        }
+        depth++;
+    }while((new Date()).getTime() - start < MINSearchTime && depth < MAX_DEPTH);
+    
+    return best;
+}
+
+function searchBestMove(board, depth, alpha, beta, positions, cutoffs){
+    //make a copy of board.
+    // let new_board_origin = clone_board(board);
+    let bestScore = -1;
+    let bestMove = -1;  //default value to be adjust !!!
+    let result = -1;
+    
+
+    bestScore = beta;
+    let new_board = clone_board(board);
 
     // try 2 in each cell, and measure how annoying it is
     let candidates = [];
     let cells = availableCells(new_board);
-    let scores = {2:[], 4:[]};
-    for (let value in scores){
-        for (let i in cells){
+    let scores = {2:[]}; // removed 4 case
+    for (let value in scores){  // value == 0;
+        for (let i in cells){  // i is the index.
             scores[value].push(null);
             let cell = cells[i];
-
+            new_board[cell.x][cell.y] = 2;
+            scores[value][i] = -smoothness(new_board);  //+ islands(new_board);
+            new_board[cell.x][cell.y] = 0; 
         }
     }
 
+    let maxScore = Math.max(Math.max.apply(null, scores[2]))
+    for (let value in scores){
+        for (let i = 0; i < scores[value].length; i++){
+            if (scores[value][i] == maxScore){
+                candidates.push({position: cells[i], value: parseInt(value, 10)});
+            }
+        }
+    }
+
+    //search on each candidate
+    for (let i = 0; i<candidates.length; i++){
+        let position = candidates[i].position;
+        let value = candidates[i].value;
+        let new_board2 = clone_board(board);
+        new_board2[position.x][position.y] = value;
+        positions++;
+        result = searchBestMove(new_board2, depth, alpha, beta, positions, cutoffs);
+        cutoffs = result.cutoffs;
+
+        if (result.score < bestScore){
+            bestScore = result.score;
+        }
+        if (bestScore < alpha){
+            cutoffs++;
+            return { move: null, score: alpha, positions: positions, cutoffs: cutoffs };
+        }
+
+    }
+    return { move: bestMove, score: bestScore, positions: positions, cutoffs: cutoffs };
 }
+
+//
+function islands(board_){
+    var mark = function(x, y, value) {
+        if (x >= 0 && x <= 3 && y >= 0 && y <= 3 &&
+            self.cells[x][y] &&
+            self.cells[x][y].value == value &&
+            !self.cells[x][y].marked ) {
+          self.cells[x][y].marked = true;
+          
+          for (direction in [0,1,2,3]) {
+            var vector = self.getVector(direction);
+            mark(x + vector.x, y + vector.y, value);
+          }
+        }
+    }
+    
+    var islands = 0;
+    for (var x=0; x<4; x++) {
+        for (var y=0; y<4; y++) {
+            if (board_[x][y]) {
+                this.cells[x][y].marked = false
+            }
+        }
+    }
+}
+
 
 function clone_board(board){
     let board_ = [
@@ -153,8 +233,8 @@ function setGame() {
         }
     }
     //create 2 to begin the game
-    setTwo();
-    setTwo();
+    setTwo(board);
+    setTwo(board);
 }
 
 function updateTile(tile, num){
@@ -268,7 +348,7 @@ function slideDown() {
 }
 
 
-function setTwo() {
+function setTwo(board_) {
     if (!hasEmptyTile()) {
         return;
     }
@@ -277,8 +357,8 @@ function setTwo() {
         //find random row and column to place a 2 in
         let r = Math.floor(Math.random() * rows);
         let c = Math.floor(Math.random() * columns);
-        if (board[r][c] == 0) {
-            board[r][c] = 2;
+        if (board_[r][c] == 0) {
+            board_[r][c] = 2;
             let tile = document.getElementById(r.toString() + "-" + c.toString());
             tile.innerText = "2";
             tile.classList.add("x2");
