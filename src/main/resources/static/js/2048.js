@@ -10,6 +10,9 @@ const columns = 4;
 const VICTORY_SCORE = 30; // it should be set as 2048 for testing, 4
 var acceptKeyboardInput = true;
 var playerTurn = true
+const DEPTH = 4;
+const ALPHA = 4;
+const BETA = 4;
 
 // position related score, may not be used. 
 const SCORE_BOARD_1 = [
@@ -29,6 +32,9 @@ const SCORE_BOARD_2 = [
 // main program
 window.onload = function() {
     setGame();
+    if (!playerTurn) {
+        run_AI();
+    }
 }
 
 // interact with input.
@@ -45,6 +51,53 @@ document.addEventListener('keyup', (e) => {
         acceptKeyboardInput = false;
     }
 })
+
+
+function run_AI(){
+    acceptKeyboardInput = false;
+
+    // loop below, not finished
+    moveDir = searchBestMove(board, DEPTH, ALPHA, BETA);
+    slideWithMove(board, moveDir);
+}
+
+function searchBestMove(board, DEPTH, ALPHA, BETA){
+    //make a copy of board.
+    let new_board = clone_board(board);
+    let bestScore = -1;
+    let bestMove = "ArrowDown";
+    let result = -1;
+
+    bestScore = BETA;
+
+    // try 2 in each cell, and measure how annoying it is
+    let candidates = [];
+    let cells = availableCells(new_board);
+    let scores = {2:[], 4:[]};
+    for (let value in scores){
+        for (let i in cells){
+            scores[value].push(null);
+            let cell = cells[i];
+
+        }
+    }
+
+}
+
+function clone_board(board){
+    let board_ = [
+        [0, 0, 0, 0],
+        [0, 0, 0, 0],
+        [0, 0, 0, 0],
+        [0, 0, 0, 0]
+    ];
+    for (let r = 0; r < rows; r++){
+        for (let c = 0; c < columns; c++){
+            board_[r][c] = board[r][c];
+        }
+    }
+    return board_
+}
 
 function eval(board_){
     let emptyCells_len = availableCells(board_).length;
@@ -262,45 +315,6 @@ function findMaxElement(array) {
   }
 
 
-// function convolution(input, filter) {
-// const inputRows = input.length;
-// const inputCols = input[0].length;
-// const filterRows = filter.length;
-// const filterCols = filter[0].length;
-
-// const result = [];
-
-// for (let i = 0; i <= inputRows - filterRows; i++) {
-//     const row = [];
-//     for (let j = 0; j <= inputCols - filterCols; j++) {
-//     let sum = 0;
-//     for (let x = 0; x < filterRows; x++) {
-//         for (let y = 0; y < filterCols; y++) {
-//         sum += input[i + x][j + y] * filter[x][y];
-//         }
-//     }
-//     row.push(sum);
-//     }
-//     result.push(row);
-// }
-
-// return result;
-// }
-  
-// function sumOfSquares(matrix) {
-// let sum = 0;
-// for (let i = 0; i < matrix.length; i++) {
-//     for (let j = 0; j < matrix[i].length; j++) {
-//     sum += matrix[i][j] ** 2;
-//     }
-// }
-// return sum;
-// }
-
-
-// CHECK maximum element when checking gameOver()
-// establish a scoring system:
-// 1. 
 
 function smoothness(board_) {
     let smoothness = 0;
@@ -437,3 +451,46 @@ function monotonicity2(board_){
     return Math.max(totals[0], totals[1]) + Math.max(totals[2], totals[3]);
 
 }
+
+
+
+// function convolution(input, filter) {
+// const inputRows = input.length;
+// const inputCols = input[0].length;
+// const filterRows = filter.length;
+// const filterCols = filter[0].length;
+
+// const result = [];
+
+// for (let i = 0; i <= inputRows - filterRows; i++) {
+//     const row = [];
+//     for (let j = 0; j <= inputCols - filterCols; j++) {
+//     let sum = 0;
+//     for (let x = 0; x < filterRows; x++) {
+//         for (let y = 0; y < filterCols; y++) {
+//         sum += input[i + x][j + y] * filter[x][y];
+//         }
+//     }
+//     row.push(sum);
+//     }
+//     result.push(row);
+// }
+
+// return result;
+// }
+  
+// function sumOfSquares(matrix) {
+// let sum = 0;
+// for (let i = 0; i < matrix.length; i++) {
+//     for (let j = 0; j < matrix[i].length; j++) {
+//     sum += matrix[i][j] ** 2;
+//     }
+// }
+// return sum;
+// }
+
+
+// CHECK maximum element when checking gameOver()
+// establish a scoring system:
+// 1. 
+
