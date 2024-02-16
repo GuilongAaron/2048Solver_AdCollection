@@ -1,18 +1,19 @@
 // below are global CONST.
 // game related
-var board;
-var playerTurn = true
-var score = 0;
+let board;
+let playerTurn = true
+let score = 0;
 const VICTORY_SCORE = 30; // it should be set as 2048 for testing, 4
 
 // algorithm related
 let max_element = 0;
 const rows = 4;
 const columns = 4;
-var runAI = false;
-var acceptKeyboardInput = true;
+let runAI = false;
+let acceptKeyboardInput = true;
 const MINSearchTime = 500;
 const MAX_DEPTH = 10;
+const DIRECTIONS = ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"];
 
 
 // // position related score, may not be used. 
@@ -58,22 +59,22 @@ function run_AI(){
     acceptKeyboardInput = false;
 
     // loop below, not finished: if game is not over: then loop. else: displayGameOver();
-    moveDir = getBestMove(board);
+    moveDir = getBestMove(board, playerTurn);
     slideWithMove(board, moveDir);
     setTwo(board);
 }
 
-function getBestMove(board){
+function getBestMove(board_, playerTurn_){
     let start = (new Date()).getTime();
     let depth = 0;
-    let best = "ArrowDown";
+    let best = -1;
 
     do{
-        let newBest = searchBestMove(board, depth, -10000, 10000, 0, 0);
+        let newBest = searchBestMove(board_, playerTurn_, depth, -10000, 10000, 0, 0);
         if (newBest.move == -1){
             break;
         }else{
-            best = newBest;
+            best = newBest.move;
         }
         depth++;
     }while((new Date()).getTime() - start < MINSearchTime && depth < MAX_DEPTH);
@@ -81,87 +82,147 @@ function getBestMove(board){
     return best;
 }
 
-function searchBestMove(board, depth, alpha, beta, positions, cutoffs){
+function searchBestMove(board_, playerTurn_, depth, alpha, beta, positions, cutoffs){
     //make a copy of board.
     // let new_board_origin = clone_board(board);
     let bestScore = -1;
     let bestMove = -1;  //default value to be adjust !!!
     let result = -1;
     
+    // from if-condition, line 30
+    if (playerTurn_){
+        bestScore = alpha;
+        for (let direction of DIRECTIONS){
+            let new_board = clone_board(board_); 
+            let new_playTurn = true;
+            slideWithMove(new_board, direction);
+            positions++;
+            if (is_end(new_board)){
+                return {move: direction, score: 10000, positions: positions, cutoffs: cutoffs };
+            }            
+            if (depth == 0){
+                return { move: direction, score: eval(new_board) };
+            } else {
+                result = searchBestMove(new_board, new_playTurn, depth, alpha, beta, positions, cutoffs);
+                if (result.score > 9900){
+                    result.score--;
+                }
+                positions = result.positions;
+                cutoffs = result.cutoffs;
+            }
 
-    bestScore = beta;
-    let new_board = clone_board(board);
-
-    // try 2 in each cell, and measure how annoying it is
-    let candidates = [];
-    let cells = availableCells(new_board);
-    let scores = {2:[]}; // removed 4 case
-    for (let value in scores){  // value == 0;
-        for (let i in cells){  // i is the index.
-            scores[value].push(null);
-            let cell = cells[i];
-            new_board[cell.x][cell.y] = 2;
-            scores[value][i] = -smoothness(new_board);  //+ islands(new_board);
-            new_board[cell.x][cell.y] = 0; 
-        }
-    }
-
-    let maxScore = Math.max(Math.max.apply(null, scores[2]))
-    for (let value in scores){
-        for (let i = 0; i < scores[value].length; i++){
-            if (scores[value][i] == maxScore){
-                candidates.push({position: cells[i], value: parseInt(value, 10)});
+            if (result.score > bestScore){
+                cutoffs++;
+                return  {move: bestMove, score: beta, positions: positions, cutoffs: cutoffs};
             }
         }
-    }
+    } else {
+    
+        bestScore = beta;
+        let candidates = [];
 
-    //search on each candidate
-    for (let i = 0; i<candidates.length; i++){
-        let position = candidates[i].position;
-        let value = candidates[i].value;
-        let new_board2 = clone_board(board);
-        new_board2[position.x][position.y] = value;
-        positions++;
-        result = searchBestMove(new_board2, depth, alpha, beta, positions, cutoffs);
-        cutoffs = result.cutoffs;
-
-        if (result.score < bestScore){
-            bestScore = result.score;
+        let new_board = clone_board(board);
+        let new_playTurn = true;
+        // try 2 in each cell, and measure how annoying it is
+        let cells = availableCells(new_board);
+        let scores = {2:[]}; // removed 4 case
+        for (let value in scores){  // value == 0;
+            for (let i in cells){  // i is the index.
+                scores[value].push(null);
+                let cell = cells[i];
+                new_board[cell.x][cell.y] = 2;
+                scores[value][i] = -smoothness(new_board);  //+ islands(new_board);
+                new_board[cell.x][cell.y] = 0; 
+            }
         }
-        if (bestScore < alpha){
-            cutoffs++;
-            return { move: null, score: alpha, positions: positions, cutoffs: cutoffs };
-        }
 
+        
+        let maxScore = Math.max(Math.max.apply(null, scores[2]))
+        for (let value in scores){
+            for (let i = 0; i < scores[value].length; i++){
+                if (scores[value][i] == maxScore){
+                    candidates.push({position: cells[i], value: parseInt(value, 10)});
+                }
+            }
+        }
+        
+        //search on each candidate
+        for (let i = 0; i<candidates.length; i++){
+            let position = candidates[i].position;
+            let value = candidates[i].value;
+            let new_board2 = clone_board(board);
+            new_board2[position.x][position.y] = value;
+            positions++;
+            result = searchBestMove(new_board2, depth, alpha, beta, positions, cutoffs);
+            cutoffs = result.cutoffs;
+            
+            if (result.score < bestScore){
+                bestScore = result.score;
+            }
+            if (bestScore < alpha){
+                cutoffs++;
+                return { move: null, score: alpha, positions: positions, cutoffs: cutoffs };
+            }
+            
+        }
     }
     return { move: bestMove, score: bestScore, positions: positions, cutoffs: cutoffs };
 }
 
-//
-function islands(board_){
-    var mark = function(x, y, value) {
-        if (x >= 0 && x <= 3 && y >= 0 && y <= 3 &&
-            self.cells[x][y] &&
-            self.cells[x][y].value == value &&
-            !self.cells[x][y].marked ) {
-          self.cells[x][y].marked = true;
-          
-          for (direction in [0,1,2,3]) {
-            var vector = self.getVector(direction);
-            mark(x + vector.x, y + vector.y, value);
-          }
-        }
-    }
-    
-    var islands = 0;
-    for (var x=0; x<4; x++) {
-        for (var y=0; y<4; y++) {
-            if (board_[x][y]) {
-                this.cells[x][y].marked = false
-            }
-        }
+function is_end(board_){
+    let max_ele = findMaxElement(board_);
+    //max_ele = 2048. or cannot move.
+    if (max_ele === 2048 && !is_movable(board_)){
+        // return true
+        return true;
+    }else{
+        //else return false
+        return false;
     }
 }
+
+function is_movable(board_){
+    // let directions = ["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"];
+    for (let direction of DIRECTIONS){
+        let new_board = clone_board(board_);
+        slideWithMove(new_board, direction);
+        //if one element in board is different, then return true. --> movable
+        //else return false: all direction return same board.
+        for(let r = 0; r <rows; r++){
+            for(let c = 0; c < columns; c++){
+                if (board_[r][c] !== new_board[r][c]){
+                    return true;
+                }
+            }
+        }        
+    }
+    return false;
+}
+//
+// function islands(board_){
+//     var mark = function(x, y, value) {
+//         if (x >= 0 && x <= 3 && y >= 0 && y <= 3 &&
+//             self.cells[x][y] &&
+//             self.cells[x][y].value == value &&
+//             !self.cells[x][y].marked ) {
+//           self.cells[x][y].marked = true;
+          
+//           for (direction in [0,1,2,3]) {
+//             var vector = self.getVector(direction);
+//             mark(x + vector.x, y + vector.y, value);
+//           }
+//         }
+//     }
+    
+//     var islands = 0;
+//     for (var x=0; x<4; x++) {
+//         for (var y=0; y<4; y++) {
+//             if (board_[x][y]) {
+//                 this.cells[x][y].marked = false
+//             }
+//         }
+//     }
+// }
 
 
 function clone_board(board){
