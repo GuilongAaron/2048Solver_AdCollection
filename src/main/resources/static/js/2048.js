@@ -9,7 +9,7 @@ var columns = 4;
 var max_element = 0;
 var VICTORY_SCORE = 30; // it should be set as 2048 for testing, 4
 var acceptKeyboardInput = true;
-
+var playerTurn = true
 
 // position related score, may not be used. 
 const SCORE_BOARD_1 = [
@@ -247,42 +247,72 @@ function findMaxElement(array) {
   }
 
 
-  function convolution(input, filter) {
-    const inputRows = input.length;
-    const inputCols = input[0].length;
-    const filterRows = filter.length;
-    const filterCols = filter[0].length;
-  
-    const result = [];
-  
-    for (let i = 0; i <= inputRows - filterRows; i++) {
-      const row = [];
-      for (let j = 0; j <= inputCols - filterCols; j++) {
-        let sum = 0;
-        for (let x = 0; x < filterRows; x++) {
-          for (let y = 0; y < filterCols; y++) {
-            sum += input[i + x][j + y] * filter[x][y];
-          }
-        }
-        row.push(sum);
-      }
-      result.push(row);
-    }
-  
-    return result;
-  }
-  
-  function sumOfSquares(matrix) {
-    let sum = 0;
-    for (let i = 0; i < matrix.length; i++) {
-      for (let j = 0; j < matrix[i].length; j++) {
-        sum += matrix[i][j] ** 2;
-      }
-    }
-    return sum;
-  }
+function convolution(input, filter) {
+const inputRows = input.length;
+const inputCols = input[0].length;
+const filterRows = filter.length;
+const filterCols = filter[0].length;
 
+const result = [];
+
+for (let i = 0; i <= inputRows - filterRows; i++) {
+    const row = [];
+    for (let j = 0; j <= inputCols - filterCols; j++) {
+    let sum = 0;
+    for (let x = 0; x < filterRows; x++) {
+        for (let y = 0; y < filterCols; y++) {
+        sum += input[i + x][j + y] * filter[x][y];
+        }
+    }
+    row.push(sum);
+    }
+    result.push(row);
+}
+
+return result;
+}
   
-  // CHECK maximum element when checking gameOver()
-  // establish a scoring system:
-  // 1. 
+function sumOfSquares(matrix) {
+let sum = 0;
+for (let i = 0; i < matrix.length; i++) {
+    for (let j = 0; j < matrix[i].length; j++) {
+    sum += matrix[i][j] ** 2;
+    }
+}
+return sum;
+}
+
+
+// CHECK maximum element when checking gameOver()
+// establish a scoring system:
+// 1. 
+
+function smoothness(board_) {
+let smoothness = 0;
+for (var x=0; x<4; x++) {
+    for (var y=0; y<4; y++) {
+    if ( board_[x][y] !== 0) {
+        var value = Math.log(board_[x][y]) / Math.log(2);
+        for (var direction=1; direction<=2; direction++) {
+        var vector = this.getVector(direction);
+        var targetCell = this.findFarthestPosition(this.indexes[x][y], vector).next;
+
+        if (this.cellOccupied(targetCell)) {
+            var target = this.cellContent(targetCell);
+            var targetValue = Math.log(target.value) / Math.log(2);
+            smoothness -= Math.abs(value - targetValue);
+        }
+        }
+    }
+    }
+}
+return smoothness;
+}
+
+function getVector(board_, direction){
+    return Vectors(board_, direction);
+}
+
+function Vectors(board_, direction){
+
+}
