@@ -1,37 +1,27 @@
 // below are global CONST.
 // game related
 let board;
-let playerTurn = false;
+let playerTurn = true;  // f
 let score_global = 0;
 const VICTORY_SCORE = 30; // it should be set as 2048 for testing, 4
 
 // ai run
 let runAI = true;
+const MINSearchTime = 50;
+const DELAYTIME = 50;
 
 // algorithm related
 let max_element = 0;
 const rows = 4;
 const columns = 4;
 let acceptKeyboardInput = true;
-const MINSearchTime = 500;
-const MAX_DEPTH = 10;
+const MAX_DEPTH = 5;
 const DIRECTIONS = ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"];
 
-
-// // position related score, may not be used. 
-// const SCORE_BOARD_1 = [
-//     [4**0, 4**1, 4**2, 4**3],
-//     [4**7, 4**6, 4**5, 4**4],
-//     [4**8, 4**9, 4**10, 4**11],
-//     [4**15, 4**14, 4**13, 4**12]
-// ];
-// // monotoned score
-// const SCORE_BOARD_2 = [
-//     [4**9, 4**7, 4**5, 4**3],
-//     [4**11, 4**9, 4**7, 4**5],
-//     [4**13, 4**11, 4**9, 4**7],
-//     [4**15, 4**13, 4**11, 4**9]
-// ];
+// island to be modified.
+// 
+// position related score, may not be used. 
+// async function to be modified
 
 // main program
 window.onload = function() {
@@ -47,6 +37,7 @@ document.addEventListener('keyup', (e) => {
     if (acceptKeyboardInput){
         slideWithMove(board, e.key)
         setTwo(board);
+        updateVisualBoard();
     }
     document.getElementById("score").innerText = score_global;
     max_element = findMaxElement(board);
@@ -57,7 +48,7 @@ document.addEventListener('keyup', (e) => {
 })
 
 
-function run_AI(){
+async function run_AI(){
     acceptKeyboardInput = false;
     
     // loop below, not finished: if game is not over: then loop. else: displayGameOver();
@@ -70,13 +61,23 @@ function run_AI(){
         }else{            
             let moveDir = getBestMove(board, playerTurn);
             if (moveDir ==-1){
-                console.log("best move is found as -1.");
+                console.log("best move is found as -1. Inside run_AI. ");
                 break;
             }
+            // console.log("before pause.");
+            await pause(DELAYTIME);
+            // console.log("after pause.");
             slideWithMove(board, moveDir);
             setTwo(board);
+            updateVisualBoard();
         }
     }
+}
+
+function pause(delay) {
+    return new Promise(resolve => {
+        setTimeout(resolve, delay);
+    });
 }
 
 function getBestMove(board_, playerTurn_){
@@ -87,6 +88,7 @@ function getBestMove(board_, playerTurn_){
     do{
         let newBest = searchBestMove(board_, playerTurn_, depth, -10000, 10000, 0, 0);
         if (newBest.move == -1){
+            console.log("search failed for this. inside getBestMove.");
             break;
         }else{
             best = newBest.move;
@@ -267,12 +269,14 @@ function is_movable(board_, direction){
 
 
 function clone_board(board){
+
     let board_ = [
         [0, 0, 0, 0],
         [0, 0, 0, 0],
         [0, 0, 0, 0],
         [0, 0, 0, 0]
     ];
+
     for (let r = 0; r < rows; r++){
         for (let c = 0; c < columns; c++){
             board_[r][c] = board[r][c];
@@ -324,19 +328,42 @@ function setGame() {
         [0, 0, 0, 0],
         [0, 0, 0, 0]
     ];
+    board = [
+        [0, 2, 8, 0],
+        [0, 2, 32, 4],
+        [16, 8, 16, 16],
+        [2, 4, 4, 4]
+    ];
 
+    //create 2 to begin the game
+    setTwo(board);
+    setTwo(board);
+    createVisualBoard();
+}
+
+function createVisualBoard(){
     for (let r = 0; r < rows; r++) {
         for (let c = 0; c < columns; c++) {
             let tile = document.createElement("div");
             tile.id = r.toString() + "-" + c.toString();
-            let num = board[r][c];
+            let num = board[r][c];            
             updateTile(tile, num);
             document.getElementById("board").append(tile);
         }
     }
-    //create 2 to begin the game
-    setTwo(board);
-    setTwo(board);
+}
+
+
+
+function updateVisualBoard(){
+    for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < columns; c++) {
+            let tile = document.getElementById(r.toString() + "-" + c.toString());
+            let num = board[r][c];
+            updateTile(tile, num);
+            
+        }
+    }
 }
 
 function updateTile(tile, num){
@@ -392,11 +419,11 @@ function slideLeft(board_) {
         let row = board_[r];
         row = slide(row, board_);
         board_[r] = row;
-        for (let c = 0; c < columns; c++){
-            let tile = document.getElementById(r.toString() + "-" + c.toString());
-            let num = board_[r][c];
-            updateTile(tile, num);
-        }
+        // for (let c = 0; c < columns; c++){
+        //     let tile = document.getElementById(r.toString() + "-" + c.toString());
+        //     let num = board_[r][c];
+        //     updateTile(tile, num);
+        // }
     }
 }
 
@@ -407,11 +434,11 @@ function slideRight(board_) {
         row.reverse();              //[2, 2, 2, 0]
         row = slide(row, board_)            //[4, 2, 0, 0]
         board_[r] = row.reverse();   //[0, 0, 2, 4];
-        for (let c = 0; c < columns; c++){
-            let tile = document.getElementById(r.toString() + "-" + c.toString());
-            let num = board_[r][c];
-            updateTile(tile, num);
-        }
+        // for (let c = 0; c < columns; c++){
+        //     let tile = document.getElementById(r.toString() + "-" + c.toString());
+        //     let num = board_[r][c];
+        //     updateTile(tile, num);
+        // }
     }
 }
 
@@ -425,9 +452,9 @@ function slideUp(board_) {
         // board[3][c] = row[3];
         for (let r = 0; r < rows; r++){
             board_[r][c] = row[r];
-            let tile = document.getElementById(r.toString() + "-" + c.toString());
-            let num = board_[r][c];
-            updateTile(tile, num);
+            // let tile = document.getElementById(r.toString() + "-" + c.toString());
+            // let num = board_[r][c];
+            // updateTile(tile, num);
         }
     }
 }
@@ -445,9 +472,9 @@ function slideDown(board_) {
         // board[3][c] = row[3];
         for (let r = 0; r < rows; r++){
             board_[r][c] = row[r];
-            let tile = document.getElementById(r.toString() + "-" + c.toString());
-            let num = board_[r][c];
-            updateTile(tile, num);
+            // let tile = document.getElementById(r.toString() + "-" + c.toString());
+            // let num = board_[r][c];
+            // updateTile(tile, num);
         }
     }
 }
@@ -471,9 +498,9 @@ function setTwo(board_) {
 
         if (board_[r][c] == 0) {
             board_[r][c] = 2;
-            let tile = document.getElementById(r.toString() + "-" + c.toString());
-            tile.innerText = "2";
-            tile.classList.add("x2");
+            // let tile = document.getElementById(r.toString() + "-" + c.toString());
+            // tile.innerText = "2";
+            // tile.classList.add("x2");
             found = true;
         }
     }
