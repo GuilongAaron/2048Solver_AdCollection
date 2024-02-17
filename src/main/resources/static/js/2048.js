@@ -1,15 +1,17 @@
 // below are global CONST.
 // game related
 let board;
-let playerTurn = true
-let score = 0;
+let playerTurn = false;
+let score_global = 0;
 const VICTORY_SCORE = 30; // it should be set as 2048 for testing, 4
+
+// ai run
+let runAI = true;
 
 // algorithm related
 let max_element = 0;
 const rows = 4;
 const columns = 4;
-let runAI = false;
 let acceptKeyboardInput = true;
 const MINSearchTime = 500;
 const MAX_DEPTH = 10;
@@ -46,7 +48,7 @@ document.addEventListener('keyup', (e) => {
         slideWithMove(board, e.key)
         setTwo(board);
     }
-    document.getElementById("score").innerText = score;
+    document.getElementById("score").innerText = score_global;
     max_element = findMaxElement(board);
     if (max_element >= VICTORY_SCORE) {
         displayVictory();
@@ -57,11 +59,24 @@ document.addEventListener('keyup', (e) => {
 
 function run_AI(){
     acceptKeyboardInput = false;
-
+    
     // loop below, not finished: if game is not over: then loop. else: displayGameOver();
-    moveDir = getBestMove(board, playerTurn);
-    slideWithMove(board, moveDir);
-    setTwo(board);
+    while(true){
+        if (max_element >= VICTORY_SCORE) {
+            displayVictory();
+            break;
+        }else if (is_gameOver(board)){
+            break;
+        }else{            
+            let moveDir = getBestMove(board, playerTurn);
+            if (moveDir ==-1){
+                console.log("best move is found as -1.");
+                break;
+            }
+            slideWithMove(board, moveDir);
+            setTwo(board);
+        }
+    }
 }
 
 function getBestMove(board_, playerTurn_){
@@ -77,7 +92,7 @@ function getBestMove(board_, playerTurn_){
             best = newBest.move;
         }
         depth++;
-    }while((new Date()).getTime() - start < MINSearchTime && depth < MAX_DEPTH);
+    }while((new Date()).getTime() - start < MINSearchTime || depth < MAX_DEPTH);
     
     return best;
 }
@@ -95,15 +110,19 @@ function searchBestMove(board_, playerTurn_, depth, alpha, beta, positions, cuto
         for (let direction of DIRECTIONS){
             let new_board = clone_board(board_); 
             let new_playTurn = true;
+            //
             slideWithMove(new_board, direction);
+            setTwo(new_board);
+            // 
             positions++;
-            if (is_end(new_board)){
+            //
+            if (is_end(new_board, direction)){
                 return {move: direction, score: 10000, positions: positions, cutoffs: cutoffs };
             }            
             if (depth == 0){
                 return { move: direction, score: eval(new_board) };
             } else {
-                result = searchBestMove(new_board, new_playTurn, depth, alpha, beta, positions, cutoffs);
+                result = searchBestMove(new_board, new_playTurn, depth-1, bestScore, beta, positions, cutoffs);
                 if (result.score > 9900){
                     result.score--;
                 }
@@ -112,30 +131,33 @@ function searchBestMove(board_, playerTurn_, depth, alpha, beta, positions, cuto
             }
 
             if (result.score > bestScore){
+                bestScore = result.score;
+                bestMove = direction;
+            }
+
+            if (bestScore > beta){
                 cutoffs++;
                 return  {move: bestMove, score: beta, positions: positions, cutoffs: cutoffs};
             }
         }
     } else {
-    
+        // computer turn.
         bestScore = beta;
         let candidates = [];
 
-        let new_board = clone_board(board);
-        let new_playTurn = true;
         // try 2 in each cell, and measure how annoying it is
-        let cells = availableCells(new_board);
+        let cells = availableCells(board_);
         let scores = {2:[]}; // removed 4 case
         for (let value in scores){  // value == 0;
             for (let i in cells){  // i is the index.
                 scores[value].push(null);
                 let cell = cells[i];
-                new_board[cell.x][cell.y] = 2;
-                scores[value][i] = -smoothness(new_board);  //+ islands(new_board);
-                new_board[cell.x][cell.y] = 0; 
+                board_[cell.x][cell.y] = 2;
+                scores[value][i] = -smoothness(board_);  //+ islands(new_board);
+                board_[cell.x][cell.y] = 0; 
             }
         }
-
+        
         
         let maxScore = Math.max(Math.max.apply(null, scores[2]))
         for (let value in scores){
@@ -150,10 +172,12 @@ function searchBestMove(board_, playerTurn_, depth, alpha, beta, positions, cuto
         for (let i = 0; i<candidates.length; i++){
             let position = candidates[i].position;
             let value = candidates[i].value;
-            let new_board2 = clone_board(board);
-            new_board2[position.x][position.y] = value;
+            let new_board = clone_board(board_);
+            let new_playTurn = true;
+            //let new_board2 = clone_board(board);
+            new_board[position.x][position.y] = value;
             positions++;
-            result = searchBestMove(new_board2, depth, alpha, beta, positions, cutoffs);
+            result = searchBestMove(new_board, new_playTurn, depth, alpha, beta, positions, cutoffs);
             cutoffs = result.cutoffs;
             
             if (result.score < bestScore){
@@ -161,7 +185,7 @@ function searchBestMove(board_, playerTurn_, depth, alpha, beta, positions, cuto
             }
             if (bestScore < alpha){
                 cutoffs++;
-                return { move: null, score: alpha, positions: positions, cutoffs: cutoffs };
+                return { move: -1, score: alpha, positions: positions, cutoffs: cutoffs };
             }
             
         }
@@ -169,10 +193,10 @@ function searchBestMove(board_, playerTurn_, depth, alpha, beta, positions, cuto
     return { move: bestMove, score: bestScore, positions: positions, cutoffs: cutoffs };
 }
 
-function is_end(board_){
+function is_end(board_, direction){
     let max_ele = findMaxElement(board_);
     //max_ele = 2048. or cannot move.
-    if (max_ele === 2048 && !is_movable(board_)){
+    if (max_ele === 2048 || !is_movable(board_, direction)){
         // return true
         return true;
     }else{
@@ -180,10 +204,27 @@ function is_end(board_){
         return false;
     }
 }
+function is_gameOver(board_){
 
-function is_movable(board_){
-    // let directions = ["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"];
     for (let direction of DIRECTIONS){
+        let new_board = clone_board(board_);
+        slideWithMove(new_board, direction);
+        //if one element in board is different, then return true. --> movable
+        //else return false: all direction return same board.
+        for(let r = 0; r <rows; r++){
+            for(let c = 0; c < columns; c++){
+                if (board_[r][c] !== new_board[r][c]){
+                    return false;
+                }
+            }
+        }        
+    }
+    return true;
+}
+
+function is_movable(board_, direction){
+    // let directions = ["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"];
+    // for (let direction of DIRECTIONS){
         let new_board = clone_board(board_);
         slideWithMove(new_board, direction);
         //if one element in board is different, then return true. --> movable
@@ -195,7 +236,7 @@ function is_movable(board_){
                 }
             }
         }        
-    }
+    // }
     return false;
 }
 //
@@ -323,7 +364,7 @@ function filterZero(row){
     return row.filter(num => num != 0); //create new array of all nums != 0
 }
 
-function slide(row) {
+function slide(row, board_) {
     //[0, 2, 2, 2] move to left
     row = filterZero(row);  //[2, 2, 2]  first remove zeros
     //[4, 0, 2]  combine the adjacent idential elements
@@ -331,7 +372,10 @@ function slide(row) {
         if (row[i] == row[i+1]) {
             row[i] *= 2;
             row[i+1] = 0;
-            score += row[i];
+            if (board_ === board){
+                score_global += row[i];
+            }
+            //add logic here, if row[i] == 2048, displayVictory!
         }
     } 
     row = filterZero(row); //[4, 2]
@@ -343,66 +387,66 @@ function slide(row) {
 }
 
 
-function slideLeft() {
+function slideLeft(board_) {
     for (let r = 0; r < rows; r++) {
-        let row = board[r];
-        row = slide(row);
-        board[r] = row;
+        let row = board_[r];
+        row = slide(row, board_);
+        board_[r] = row;
         for (let c = 0; c < columns; c++){
             let tile = document.getElementById(r.toString() + "-" + c.toString());
-            let num = board[r][c];
+            let num = board_[r][c];
             updateTile(tile, num);
         }
     }
 }
 
 
-function slideRight() {
+function slideRight(board_) {
     for (let r = 0; r < rows; r++) {
-        let row = board[r];         //[0, 2, 2, 2]
+        let row = board_[r];         //[0, 2, 2, 2]
         row.reverse();              //[2, 2, 2, 0]
-        row = slide(row)            //[4, 2, 0, 0]
-        board[r] = row.reverse();   //[0, 0, 2, 4];
+        row = slide(row, board_)            //[4, 2, 0, 0]
+        board_[r] = row.reverse();   //[0, 0, 2, 4];
         for (let c = 0; c < columns; c++){
             let tile = document.getElementById(r.toString() + "-" + c.toString());
-            let num = board[r][c];
+            let num = board_[r][c];
             updateTile(tile, num);
         }
     }
 }
 
-function slideUp() {
+function slideUp(board_) {
     for (let c = 0; c < columns; c++) {
-        let row = [board[0][c], board[1][c], board[2][c], board[3][c]];
-        row = slide(row);
+        let row = [board_[0][c], board_[1][c], board_[2][c], board_[3][c]];
+        row = slide(row, board_);
         // board[0][c] = row[0];
         // board[1][c] = row[1];
         // board[2][c] = row[2];
         // board[3][c] = row[3];
         for (let r = 0; r < rows; r++){
-            board[r][c] = row[r];
+            board_[r][c] = row[r];
             let tile = document.getElementById(r.toString() + "-" + c.toString());
-            let num = board[r][c];
+            let num = board_[r][c];
             updateTile(tile, num);
         }
     }
 }
 
 
-function slideDown() {
+function slideDown(board_) {
     for (let c = 0; c < columns; c++) {
-        let row = [board[0][c], board[1][c], board[2][c], board[3][c]];
+        let row = [board_[0][c], board_[1][c], board_[2][c], board_[3][c]];
         row.reverse();
-        row = slide(row);
+        row = slide(row, board_);
         row.reverse();
         // board[0][c] = row[0];
         // board[1][c] = row[1];
         // board[2][c] = row[2];
         // board[3][c] = row[3];
         for (let r = 0; r < rows; r++){
-            board[r][c] = row[r];
+            board_[r][c] = row[r];
             let tile = document.getElementById(r.toString() + "-" + c.toString());
-            let num = board[r][c];
+            let num = board_[r][c];
             updateTile(tile, num);
         }
     }
@@ -416,8 +460,15 @@ function setTwo(board_) {
     let found = false;
     while (!found) {
         //find random row and column to place a 2 in
-        let r = Math.floor(Math.random() * rows);
-        let c = Math.floor(Math.random() * columns);
+        // this portion can be chosen from availableCell, and random a index.
+        let cells = availableCells(board_);
+        if(cells.length === 0) {
+            break;
+        }
+        let cell = cells[Math.floor(Math.random() * cells.length)];
+        let r = cell.x;  //.random() * cells.length);
+        let c = cell.y; // Math.floor(Math.random() * columns);
+
         if (board_[r][c] == 0) {
             board_[r][c] = 2;
             let tile = document.getElementById(r.toString() + "-" + c.toString());
@@ -471,9 +522,9 @@ function smoothness(board_) {
                     // I strongly feel here, should be previous_row, previous_col
                     // (board_, targetCell.previous_row, targetCell.previous_col)
                     // (board_, targetCell.next_x, targetCell.next_y)
-                    if (cellOccupied(board_, targetCell.previous_row, targetCell.previous_col)) {
-                        console.log("if-clause in smoothness is executed.");
-                        let target = cellContent(board_, targetCell.previous_row, targetCell.previous_col);
+                    if (cellOccupied(board_, targetCell.next_x, targetCell.next_y)) {
+                        // console.log("if-clause in smoothness is executed.");
+                        let target = board_[targetCell.next_x][targetCell.next_y];
                         let targetValue = Math.log(target) / Math.log(2);
                         smoothness -= Math.abs(value - targetValue);
                     }
@@ -489,7 +540,7 @@ function withinBounds(x, y){
 }
 
 function cellContent(board_, x, y){
-    if (withinBounds(board_, x, y)){
+    if (withinBounds(x, y)){
         return board_[x][y];
     }else{
         return null;
@@ -497,6 +548,12 @@ function cellContent(board_, x, y){
 }
 
 function cellOccupied(board_, x, y){
+
+    // if (withinBounds(board_, x, y)){
+    //     return board_[x][y];
+    // }else{
+    //     return null;
+    // }
     return !!cellContent(board_, x, y);
 }
 
@@ -506,11 +563,11 @@ function findFurthestPosition(board_, x, y, MoveDir){
     let moving_x_co;
     let moving_y_co;
     if (MoveDir === "ArrowRight"){
-        moving_x_co = 1;
-        moving_y_co = 0;
-    } else if (MoveDir === "ArrowDown"){
         moving_x_co = 0;
         moving_y_co = 1;
+    } else if (MoveDir === "ArrowDown"){
+        moving_x_co = 1;
+        moving_y_co = 0;
     }
     do {
         previous_row = x;
@@ -531,7 +588,7 @@ function availableCells(board_){
     let cells = [];
     for (let r = 0; r < rows; r++){
         for (let c = 0; c < columns; c++){
-            if (board_[r][c] !==0) {
+            if (board_[r][c] ===0) {
                 cells.push({x: r, y: c});
             }
         }
