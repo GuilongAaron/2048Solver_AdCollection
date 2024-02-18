@@ -20,6 +20,6 @@ $E_4 = \displaystyle\max_{i,j}a_{ij} $
 
 ## Solver Autorun
 Example of the Autorun.
-![Example of the solver](src\main\resources\static\images\2048solver_example.gif)
+![Example of the solver](2048solver_example.gif)
 
 
