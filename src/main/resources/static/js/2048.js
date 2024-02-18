@@ -1,14 +1,19 @@
 // below are global CONST.
 // game related
-let board;
+let board = [
+    [0, 0, 0, 0],
+    [0, 0, 0, 0],
+    [0, 0, 0, 0],
+    [0, 0, 0, 0]
+];
 let playerTurn = true;  // f
 let score_global = 0;
-const VICTORY_SCORE = 30; // it should be set as 2048 for testing, 4
+const VICTORY_SCORE = 500; // it should be set as 2048 for testing, 4
 
 // ai run
 let runAI = true;
 const MINSearchTime = 50;
-const DELAYTIME = 50;
+const DELAYTIME = 750;
 
 // algorithm related
 let max_element = 0;
@@ -47,10 +52,24 @@ document.addEventListener('keyup', (e) => {
     }
 })
 
+function eval(board_){
+    let emptyCells_len = availableCells(board_).length;
+
+    let smoothWeight = 0.1;
+    let mono2Weight = 1.0;
+    let emptyWeight = 2.7;
+    let maxWeight = 1.0;
+    return smoothness(board_) * smoothWeight
+            + monotonicity2(board_) * mono2Weight
+            + Math.log(emptyCells_len) * emptyWeight 
+            + findMaxElement(board_) * maxWeight  
+
+}
+
 
 async function run_AI(){
-    acceptKeyboardInput = false;
-    
+    // acceptKeyboardInput = false;
+    await pause(20);
     // loop below, not finished: if game is not over: then loop. else: displayGameOver();
     while(true){
         if (max_element >= VICTORY_SCORE) {
@@ -60,16 +79,24 @@ async function run_AI(){
             break;
         }else{            
             let moveDir = getBestMove(board, playerTurn);
-            if (moveDir ==-1){
+            if (moveDir === -1){
                 console.log("best move is found as -1. Inside run_AI. ");
                 break;
             }
+            // single time or always.
+
             // console.log("before pause.");
             await pause(DELAYTIME);
             // console.log("after pause.");
             slideWithMove(board, moveDir);
             setTwo(board);
             updateVisualBoard();
+            document.getElementById("score").innerText = score_global;
+            max_element = findMaxElement(board);
+            if (max_element >= VICTORY_SCORE) {
+                displayVictory();
+                acceptKeyboardInput = false;
+            }
         }
     }
 }
@@ -89,12 +116,13 @@ function getBestMove(board_, playerTurn_){
         let newBest = searchBestMove(board_, playerTurn_, depth, -10000, 10000, 0, 0);
         if (newBest.move == -1){
             console.log("search failed for this. inside getBestMove.");
+            console.log(board_);
             break;
         }else{
             best = newBest.move;
         }
         depth++;
-    }while((new Date()).getTime() - start < MINSearchTime || depth < MAX_DEPTH);
+    }while((new Date()).getTime() - start < MINSearchTime && depth < MAX_DEPTH);
     
     return best;
 }
@@ -118,12 +146,14 @@ function searchBestMove(board_, playerTurn_, depth, alpha, beta, positions, cuto
             // 
             positions++;
             //
-            if (is_end(new_board, direction)){
+            if (findMaxElement(new_board) === 2048){
+                // should be win! score is the best!
                 return {move: direction, score: 10000, positions: positions, cutoffs: cutoffs };
             }            
-            if (depth == 0){
-                return { move: direction, score: eval(new_board) };
+            if (depth == 0){  // end node. check every possible action. 
+                result = { move: direction, score: eval(new_board) };
             } else {
+                //else go into DFS search.
                 result = searchBestMove(new_board, new_playTurn, depth-1, bestScore, beta, positions, cutoffs);
                 if (result.score > 9900){
                     result.score--;
@@ -132,19 +162,19 @@ function searchBestMove(board_, playerTurn_, depth, alpha, beta, positions, cuto
                 cutoffs = result.cutoffs;
             }
 
-            if (result.score > bestScore){
+            if (result.score > bestScore){  // higher the better.  from alpha: -10000
                 bestScore = result.score;
                 bestMove = direction;
             }
 
-            if (bestScore > beta){
+            if (bestScore > beta){  // beta: 10000.
                 cutoffs++;
                 return  {move: bestMove, score: beta, positions: positions, cutoffs: cutoffs};
             }
         }
     } else {
         // computer turn.
-        bestScore = beta;
+        bestScore = beta;  // 10000
         let candidates = [];
 
         // try 2 in each cell, and measure how annoying it is
@@ -182,17 +212,17 @@ function searchBestMove(board_, playerTurn_, depth, alpha, beta, positions, cuto
             result = searchBestMove(new_board, new_playTurn, depth, alpha, beta, positions, cutoffs);
             cutoffs = result.cutoffs;
             
-            if (result.score < bestScore){
+            if (result.score < bestScore){  // the lower the better?
                 bestScore = result.score;
             }
-            if (bestScore < alpha){
+            if (bestScore < alpha){  // alpha = -10000, 
                 cutoffs++;
-                return { move: -1, score: alpha, positions: positions, cutoffs: cutoffs };
+                return { move: null, score: alpha, positions: positions, cutoffs: cutoffs };
             }
             
         }
     }
-    return { move: bestMove, score: bestScore, positions: positions, cutoffs: cutoffs };
+    return {move: bestMove, score: bestScore, positions: positions, cutoffs: cutoffs};
 }
 
 function is_end(board_, direction){
@@ -285,21 +315,9 @@ function clone_board(board){
     return board_
 }
 
-function eval(board_){
-    let emptyCells_len = availableCells(board_).length;
-
-    let smoothWeight = 0.1;
-    let mono2Weight = 1.0;
-    let emptyWeight = 2.7;
-    let maxWeight = 1.0;
-    return smoothness(board_) * smoothWeight
-            + monotonicity2(board_) * mono2Weight
-            + Math.log(emptyCells_len) * emptyWeight 
-            + max_element * maxWeight  
-
-}
 
 
+//game related
 function slideWithMove(board_, move){
 
     if (move == "ArrowLeft") {
@@ -322,18 +340,18 @@ function slideWithMove(board_, move){
 
 function setGame() {
 
-    board = [
-        [0, 0, 0, 0],
-        [0, 0, 0, 0],
-        [0, 0, 0, 0],
-        [0, 0, 0, 0]
-    ];
-    board = [
-        [0, 2, 8, 0],
-        [0, 2, 32, 4],
-        [16, 8, 16, 16],
-        [2, 4, 4, 4]
-    ];
+    // board = [
+    //     [0, 0, 0, 0],
+    //     [0, 0, 0, 0],
+    //     [0, 0, 0, 0],
+    //     [0, 0, 0, 0]
+    // ];
+    // board = [
+    //     [0, 2, 8, 0],
+    //     [0, 2, 32, 4],
+    //     [16, 8, 16, 16],
+    //     [2, 4, 4, 4]
+    // ];
 
     //create 2 to begin the game
     setTwo(board);
@@ -360,8 +378,7 @@ function updateVisualBoard(){
         for (let c = 0; c < columns; c++) {
             let tile = document.getElementById(r.toString() + "-" + c.toString());
             let num = board[r][c];
-            updateTile(tile, num);
-            
+            updateTile(tile, num);            
         }
     }
 }
@@ -380,7 +397,7 @@ function updateTile(tile, num){
     }
 }
 
-
+//game related
 function displayVictory() {
     const resultArea = document.getElementById('resultArea');
     resultArea.textContent = "You Win!";
@@ -391,6 +408,7 @@ function filterZero(row){
     return row.filter(num => num != 0); //create new array of all nums != 0
 }
 
+//game related
 function slide(row, board_) {
     //[0, 2, 2, 2] move to left
     row = filterZero(row);  //[2, 2, 2]  first remove zeros
@@ -479,7 +497,7 @@ function slideDown(board_) {
     }
 }
 
-
+//game related
 function setTwo(board_) {
     if (!hasEmptyTile()) {
         return;
@@ -512,7 +530,7 @@ function hasEmptyTile() {
     //let count = 0;
     for (let r = 0; r < rows; r++) {
         for (let c = 0; c < columns; c++) {
-            if (board[r][c] == 0) { //at least one zero in the board
+            if (board[r][c] === 0) { //at least one zero in the board
                 return true;
             }
         }
@@ -534,7 +552,7 @@ function findMaxElement(array) {
   }
 
 
-
+//algorithm related
 function smoothness(board_) {
     let smoothness = 0;
     let directions = ["ArrowRight", "ArrowDown"];
