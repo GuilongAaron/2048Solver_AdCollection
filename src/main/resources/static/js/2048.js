@@ -1,5 +1,11 @@
 // below are global CONST.
 // game related
+// let board = [
+//     [0, 0, 2, 2],
+//     [0, 32, 8, 4],
+//     [128, 256, 16, 8],
+//     [0, 16, 32, 2]
+// ];
 let board = [
     [0, 0, 0, 0],
     [0, 0, 0, 0],
@@ -8,26 +14,29 @@ let board = [
 ];
 let playerTurn = true;  // f
 let score_global = 0;
-const VICTORY_SCORE = 500; // it should be set as 2048 for testing, 4
+const VICTORY_SCORE = 512; // it should be set as 2048 for testing, 4
 
 // ai run
 let runAI = true;
-const MINSearchTime = 50;
-const DELAYTIME = 750;
+const MINSearchTime = 70;
+const DELAYTIME = 30;
+const MAX_DEPTH = 8;
 
 // algorithm related
+let smoothWeight = 0.1;
+let mono2Weight = 1.0;
+let emptyWeight = 2.7;
+let maxWeight = 1.0;
+//
 let max_element = 0;
 const rows = 4;
 const columns = 4;
 let acceptKeyboardInput = true;
-const MAX_DEPTH = 5;
 const DIRECTIONS = ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"];
 
 // island to be modified.
-// 
 // position related score, may not be used. 
 // async function to be modified
-
 // main program
 window.onload = function() {
     setGame();
@@ -55,10 +64,10 @@ document.addEventListener('keyup', (e) => {
 function eval(board_){
     let emptyCells_len = availableCells(board_).length;
 
-    let smoothWeight = 0.1;
-    let mono2Weight = 1.0;
-    let emptyWeight = 2.7;
-    let maxWeight = 1.0;
+    // let smoothWeight = 0.1;
+    // let mono2Weight = 1.0;
+    // let emptyWeight = 2.7;
+    // let maxWeight = 1.0;
     return smoothness(board_) * smoothWeight
             + monotonicity2(board_) * mono2Weight
             + Math.log(emptyCells_len) * emptyWeight 
@@ -272,31 +281,6 @@ function is_movable(board_, direction){
     return false;
 }
 //
-// function islands(board_){
-//     var mark = function(x, y, value) {
-//         if (x >= 0 && x <= 3 && y >= 0 && y <= 3 &&
-//             self.cells[x][y] &&
-//             self.cells[x][y].value == value &&
-//             !self.cells[x][y].marked ) {
-//           self.cells[x][y].marked = true;
-          
-//           for (direction in [0,1,2,3]) {
-//             var vector = self.getVector(direction);
-//             mark(x + vector.x, y + vector.y, value);
-//           }
-//         }
-//     }
-    
-//     var islands = 0;
-//     for (var x=0; x<4; x++) {
-//         for (var y=0; y<4; y++) {
-//             if (board_[x][y]) {
-//                 this.cells[x][y].marked = false
-//             }
-//         }
-//     }
-// }
-
 
 function clone_board(board){
 
@@ -345,12 +329,6 @@ function setGame() {
     //     [0, 0, 0, 0],
     //     [0, 0, 0, 0],
     //     [0, 0, 0, 0]
-    // ];
-    // board = [
-    //     [0, 2, 8, 0],
-    //     [0, 2, 32, 4],
-    //     [16, 8, 16, 16],
-    //     [2, 4, 4, 4]
     // ];
 
     //create 2 to begin the game
@@ -563,7 +541,12 @@ function smoothness(board_) {
             if (cellOccupied(board_, x, y)) {
                 let value = Math.log(board_[x][y]) / Math.log(2);  //base 2, the log value
                 for (const direction of directions) {                
-                    let targetCell = findFurthestPosition(board_, x, y, direction);
+                    // this definition won't catch the smoothness features inside the matrix.
+                    // I would like to change it to maximum point in the matrix instead of the furthest position!
+                    
+                    let targetCell = findMaximumValuePosition(board_, x, y, direction);
+                    // let targetCell = findFurthestPosition(board_, x, y, direction);
+                    
                     // I strongly feel here, should be previous_row, previous_col
                     // (board_, targetCell.previous_row, targetCell.previous_col)
                     // (board_, targetCell.next_x, targetCell.next_y)
@@ -627,6 +610,41 @@ function findFurthestPosition(board_, x, y, MoveDir){
         next_x: x,
         next_y: y
         };
+}
+
+// to calculate the smoothness. 
+function findMaximumValuePosition(board_, x, y, MoveDir){
+
+    let maxRow = -1;
+    let maxCol = -1;
+    let maxRowValue = -1;
+    let maxColValue = -1;
+    if (MoveDir === "ArrowRight"){
+        // in the row of x, find index_y where it has the maximum.
+
+        for (let col = 0; col < columns; col++){
+            if(board_[x][col] > maxColValue){
+                maxColValue = board_[x][col];
+                maxCol = col;
+            }
+        }
+        return {
+            next_x: x,
+            next_y: maxCol
+        };
+    } else if (MoveDir === "ArrowDown"){
+        // in the columns y, find index_x where it has the maximum value.
+        for (let row = 0; row < rows; row++){
+            if(board_[row][y] > maxRowValue){
+                maxRowValue = board_[row][y];
+                maxRow = row;
+            }
+        }
+        return {
+            next_x: maxRow,
+            next_y: y
+        };
+    }    
 }
 
 function availableCells(board_){
@@ -694,46 +712,4 @@ function monotonicity2(board_){
     return Math.max(totals[0], totals[1]) + Math.max(totals[2], totals[3]);
 
 }
-
-
-
-// function convolution(input, filter) {
-// const inputRows = input.length;
-// const inputCols = input[0].length;
-// const filterRows = filter.length;
-// const filterCols = filter[0].length;
-
-// const result = [];
-
-// for (let i = 0; i <= inputRows - filterRows; i++) {
-//     const row = [];
-//     for (let j = 0; j <= inputCols - filterCols; j++) {
-//     let sum = 0;
-//     for (let x = 0; x < filterRows; x++) {
-//         for (let y = 0; y < filterCols; y++) {
-//         sum += input[i + x][j + y] * filter[x][y];
-//         }
-//     }
-//     row.push(sum);
-//     }
-//     result.push(row);
-// }
-
-// return result;
-// }
-  
-// function sumOfSquares(matrix) {
-// let sum = 0;
-// for (let i = 0; i < matrix.length; i++) {
-//     for (let j = 0; j < matrix[i].length; j++) {
-//     sum += matrix[i][j] ** 2;
-//     }
-// }
-// return sum;
-// }
-
-
-// CHECK maximum element when checking gameOver()
-// establish a scoring system:
-// 1. 
 
