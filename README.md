@@ -5,7 +5,7 @@ This program includes a simple 2048 game and a AI solver written in JavaScript.
 This solver deploys a DFS method with below heuristic metrics construction.
 
 metrics = $\theta_1E_1 + \theta_2E_2 + \theta_3E_3 + \theta_4E_4$, where \
-$E_1$ is the Smoothness of the matrix, $$\nabla a_{ij} = \begin{pmatrix} a_{i-1, j} - a_{ij}\\ a_{i-1, j} - a_{ij}\\ a_{i-1, j} - a_{ij}\\ a_{i-1, j} - a_{ij} \\ \end{pmatrix} _\infty $$\
+$E_1$ is the Smoothness of the matrix, \
 $E_2$ is the Monotonicity of the matrix, \
 $E_3$ is the empty cells on the board, \
 $E_4$ is the maximum value. 
