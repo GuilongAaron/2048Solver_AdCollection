@@ -12,7 +12,7 @@ $E_4$ is the maximum value.
 
 Given board $A=[a_{i_j}]$, where $a_{ij} = [0, 2^k, \dots, 2^11]$, $k = 1, 2, \dots 11$, $i\in[0, 3]$, $j\in[0, 3]$. 
 
-$E_1$ can be obtained by looping each element and calculating the differences comparing with the four edging points. \
+$E_1$ can be obtained by looping each element and calculating the differences comparing with the four edging points. $$\nabla a_{ij} = \|\begin{pmatrix} a_{i-1, j} - a_{ij}\\ a_{i-1, j} - a_{ij}\\ a_{i-1, j} - a_{ij}\\ a_{i-1, j} - a_{ij} \end{pmatrix} \|_\infty $$\
 $E_2$ can be obtained by comparing each element and its neighbor in row or in column and choosing the max in either of the two directions. 
 $E_3$ is the quantity when $a_{ij} = 0$. \
 $E_4 = \displaystyle\max_{i,j}a_{ij} $
