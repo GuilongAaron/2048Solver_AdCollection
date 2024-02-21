@@ -83,6 +83,7 @@ async function run_AI(){
     while(true){
         if (max_element >= VICTORY_SCORE) {
             displayVictory();
+            acceptKeyboardInput = false;
             break;
         }else if (is_gameOver(board)){
             break;
@@ -102,10 +103,7 @@ async function run_AI(){
             updateVisualBoard();
             document.getElementById("score").innerText = score_global;
             max_element = findMaxElement(board);
-            if (max_element >= VICTORY_SCORE) {
-                displayVictory();
-                acceptKeyboardInput = false;
-            }
+
         }
     }
 }
@@ -701,15 +699,15 @@ function monotonicity2(board_){
             let nextValue = cellOccupied(board_, next, c) ? Math.log(cellContent(board_, next, c)) / Math.log(2) : 0;
             
             if (currentValue > nextValue){
-                totals[0] += nextValue - currentValue;
+                totals[2] += nextValue - currentValue;
             } else if (nextValue > currentValue){
-                totals[1] += currentValue - nextValue
+                totals[3] += currentValue - nextValue
             }
             current = next;
             next++;
         }
     }
-    return Math.max(totals[0], totals[1]) + Math.max(totals[2], totals[3]);
+    return Math.min(totals[0], totals[1]) + Math.min(totals[2], totals[3]);
 
 }
 
